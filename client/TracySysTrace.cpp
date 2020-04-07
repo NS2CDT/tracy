@@ -297,6 +297,7 @@ extern "C" typedef NTSTATUS (WINAPI *t_NtQueryInformationThread)( HANDLE, THREAD
 extern "C" typedef BOOL (WINAPI *t_EnumProcessModules)( HANDLE, HMODULE*, DWORD, LPDWORD );
 extern "C" typedef BOOL (WINAPI *t_GetModuleInformation)( HANDLE, HMODULE, LPMODULEINFO, DWORD );
 extern "C" typedef DWORD (WINAPI *t_GetModuleBaseNameA)( HANDLE, HMODULE, LPSTR, DWORD );
+extern "C" typedef HRESULT(WINAPI* t_GetThreadDescription)(HANDLE hThread, PWSTR* ppszThreadDescription);
 #ifdef UNICODE
 t_NtQueryInformationThread NtQueryInformationThread = (t_NtQueryInformationThread)GetProcAddress( GetModuleHandle( L"ntdll.dll" ), "NtQueryInformationThread" );
 t_EnumProcessModules _EnumProcessModules = (t_EnumProcessModules)GetProcAddress( GetModuleHandle( L"kernel32.dll" ), "K32EnumProcessModules" );
@@ -308,7 +309,7 @@ t_EnumProcessModules _EnumProcessModules = (t_EnumProcessModules)GetProcAddress(
 t_GetModuleInformation _GetModuleInformation = (t_GetModuleInformation)GetProcAddress( GetModuleHandle( "kernel32.dll" ), "K32GetModuleInformation" );
 t_GetModuleBaseNameA _GetModuleBaseNameA = (t_GetModuleBaseNameA)GetProcAddress( GetModuleHandle( "kernel32.dll" ), "K32GetModuleBaseNameA" );
 #endif
-
+t_GetThreadDescription _GetThreadDescription = (t_GetThreadDescription)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "GetThreadDescription");
 
 void SysTraceSendExternalName( uint64_t thread )
 {
@@ -320,20 +321,22 @@ void SysTraceSendExternalName( uint64_t thread )
     }
     if( hnd != 0 )
     {
-#if defined NTDDI_WIN10_RS2 && NTDDI_VERSION >= NTDDI_WIN10_RS2
-        PWSTR tmp;
-        GetThreadDescription( hnd, &tmp );
-        char buf[256];
-        if( tmp )
+        if (_GetThreadDescription)
         {
-            auto ret = wcstombs( buf, tmp, 256 );
-            if( ret != 0 )
+            PWSTR tmp;
+            _GetThreadDescription(hnd, &tmp);
+            char buf[256];
+            if (tmp)
             {
-                GetProfiler().SendString( thread, buf, QueueType::ExternalThreadName );
-                threadSent = true;
+                auto ret = wcstombs(buf, tmp, 256);
+                if (ret != 0)
+                {
+                    GetProfiler().SendString(thread, buf, QueueType::ExternalThreadName);
+                    threadSent = true;
+                }
             }
         }
-#endif
+
         const auto pid = GetProcessIdOfThread( hnd );
         if( !threadSent && NtQueryInformationThread && _EnumProcessModules && _GetModuleInformation && _GetModuleBaseNameA )
         {

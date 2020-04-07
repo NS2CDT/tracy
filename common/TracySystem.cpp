@@ -93,14 +93,23 @@ std::atomic<ThreadNameData*>& GetThreadNameData();
 TRACY_API void InitRPMallocThread();
 #endif
 
+#if defined _WIN32 || defined __CYGWIN__
+extern "C" typedef HRESULT(WINAPI* t_SetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription);
+t_SetThreadDescription _SetThreadDescription = (t_SetThreadDescription)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription");
+#endif
+
 TRACY_API void SetThreadName( const char* name )
 {
 #if defined _WIN32 || defined __CYGWIN__
-#  if defined NTDDI_WIN10_RS2 && NTDDI_VERSION >= NTDDI_WIN10_RS2
-    wchar_t buf[256];
-    mbstowcs( buf, name, 256 );
-    SetThreadDescription( GetCurrentThread(), buf );
-#  elif defined _MSC_VER
+    if (_SetThreadDescription != NULL)
+    {
+        wchar_t buf[256];
+        mbstowcs(buf, name, 256);
+        _SetThreadDescription(GetCurrentThread(), buf);
+    }
+    else
+    {
+#if defined _MSC_VER
     const DWORD MS_VC_EXCEPTION=0x406D1388;
 #    pragma pack( push, 8 )
     struct THREADNAME_INFO
@@ -126,7 +135,8 @@ TRACY_API void SetThreadName( const char* name )
     __except(EXCEPTION_EXECUTE_HANDLER)
     {
     }
-#  endif
+#endif
+    }
 #elif defined _GNU_SOURCE && !defined __EMSCRIPTEN__ && !defined __CYGWIN__
     {
         const auto sz = strlen( name );
