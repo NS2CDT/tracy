@@ -95,12 +95,12 @@ TRACY_API void InitRPMallocThread();
 
 #if defined _WIN32 || defined __CYGWIN__
 extern "C" typedef HRESULT(WINAPI* t_SetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription);
-t_SetThreadDescription _SetThreadDescription = (t_SetThreadDescription)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription");
 #endif
 
 TRACY_API void SetThreadName( const char* name )
 {
 #if defined _WIN32 || defined __CYGWIN__
+    static t_SetThreadDescription _SetThreadDescription = (t_SetThreadDescription)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription");
     if (_SetThreadDescription != NULL)
     {
         wchar_t buf[256];
