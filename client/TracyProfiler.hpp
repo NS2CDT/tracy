@@ -107,6 +107,7 @@ struct LuaZoneState
 
 
 typedef void(*ParameterCallback)( uint32_t idx, int32_t val );
+typedef void(*ConnectCallback)(bool isConnected);
 
 class Profiler
 {
@@ -530,6 +531,7 @@ public:
 
         TracyLfqCommit;
     }
+    void SetConnectCallback(ConnectCallback callback) { m_connectCallback = callback; }
 
     void SendCallstack( int depth, const char* skipBefore );
     static void CutCallstack( void* callstack, const char* skipBefore );
@@ -784,6 +786,7 @@ private:
 #endif
 
     ParameterCallback m_paramCallback;
+    ConnectCallback m_connectCallback;
 };
 
 }

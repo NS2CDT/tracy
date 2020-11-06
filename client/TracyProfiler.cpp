@@ -1493,6 +1493,11 @@ void Profiler::Worker()
         m_deferredLock.unlock();
 #endif
 
+        if (m_connectCallback)
+        {
+            m_connectCallback(true);
+        }
+
         // Main communications loop
         int keepAlive = 0;
         for(;;)
@@ -1538,6 +1543,12 @@ void Profiler::Worker()
             }
             if( !connActive ) break;
         }
+
+        if ( m_connectCallback )
+        {
+            m_connectCallback(false);
+        }
+
         if( ShouldExit() ) break;
 
         m_isConnected.store( false, std::memory_order_release );
