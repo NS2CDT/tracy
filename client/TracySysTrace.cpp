@@ -444,6 +444,30 @@ bool SysTraceStart( int64_t& samplingPeriod )
     return true;
 }
 
+bool SysTraceSetStackSampling(int frequency)
+{
+
+    if (frequency != 0)
+    {
+        CLASSIC_EVENT_ID stackId;
+        stackId.EventGuid = PerfInfoGuid;
+        stackId.Type = 46;
+        if (TraceSetInformation(s_traceHandle, TraceStackTracingInfo, &stackId, sizeof(stackId)) != ERROR_SUCCESS)
+        {
+            return false;
+        }
+
+        TRACE_PROFILE_INTERVAL interval = {};
+        interval.Interval = ULONG(10000.f * (1000.f / frequency));
+        return TraceSetInformation(0, TraceSampledProfileIntervalInfo, &interval, sizeof(interval)) == ERROR_SUCCESS;
+    }
+    else
+    {
+        // Disables stack sampling 
+        return TraceSetInformation(s_traceHandle, TraceStackTracingInfo, NULL, 0) == ERROR_SUCCESS;
+    }
+}
+
 void SysTraceStop()
 {
     if( s_threadVsync )
@@ -620,6 +644,7 @@ static const char BufferSizeKb[] = "buffer_size_kb";
 static const char TracePipe[] = "trace_pipe";
 
 static std::atomic<bool> traceActive { false };
+static std::atomic<bool> samplingActive{ false };
 static Thread* s_threadSampling = nullptr;
 static int s_numCpus = 0;
 
@@ -700,7 +725,7 @@ static void SetupSampling( int64_t& samplingPeriod )
             bool hadData = false;
             for( int i=0; i<s_numCpus; i++ )
             {
-                if( !traceActive.load( std::memory_order_relaxed ) ) break;
+                if( !traceActive.load( std::memory_order_relaxed ) || !samplingActive.load( std::memory_order_relaxed ) ) break;
                 if( !s_ring[i].HasData() ) continue;
                 hadData = true;
 
@@ -786,6 +811,26 @@ static void SetupSampling( int64_t& samplingPeriod )
         for( int i=0; i<s_numCpus; i++ ) s_ring[i].~RingBuffer<RingBufSize>();
         tracy_free( s_ring );
     }, nullptr );
+}
+
+bool SysTraceSetStackSampling(int frequency)
+{
+
+    if (frequency != 0)
+    {
+        return false;
+    }
+    else
+    {
+        samplingActive.store(false, std::memory_order_relaxed);
+        if (s_threadSampling)
+        {
+            s_threadSampling->~Thread();
+            tracy_free(s_threadSampling);
+            s_threadSampling = NULL;
+        }
+        return true;
+    }
 }
 
 #ifdef __ANDROID__
@@ -888,6 +933,7 @@ bool SysTraceStart( int64_t& samplingPeriod )
 
     if( !TraceWrite( TracingOn, sizeof( TracingOn ), "1", 2 ) ) return false;
     traceActive.store( true, std::memory_order_relaxed );
+    samplingActive.store(true, std::memory_order_relaxed);
 
     SetupSampling( samplingPeriod );
 

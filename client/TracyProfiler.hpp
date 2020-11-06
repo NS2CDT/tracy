@@ -123,6 +123,7 @@ class Profiler
 public:
     Profiler();
     ~Profiler();
+    bool SetStackSampleRate(int sampleRate);
 
     void SpawnWorkerThreads();
 

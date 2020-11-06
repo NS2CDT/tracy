@@ -15,6 +15,7 @@ namespace tracy
 bool SysTraceStart( int64_t& samplingPeriod );
 void SysTraceStop();
 void SysTraceWorker( void* ptr );
+bool SysTraceSetStackSampling(int rate);
 
 void SysTraceSendExternalName( uint64_t thread );
 

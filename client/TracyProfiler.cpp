@@ -1125,6 +1125,15 @@ Profiler::Profiler()
 #endif
 }
 
+bool Profiler::SetStackSampleRate(int sampleRate)
+{
+    if (!s_sysTraceThread)
+    {
+        return false;
+    }
+    return SysTraceSetStackSampling(sampleRate);
+}
+
 void Profiler::SpawnWorkerThreads()
 {
     s_thread = (Thread*)tracy_malloc( sizeof( Thread ) );
