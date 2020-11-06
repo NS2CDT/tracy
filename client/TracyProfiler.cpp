@@ -1785,6 +1785,10 @@ static void FreeAssociatedMemory( const QueueItem& item )
         // Don't free memory associated with deferred messages.
         break;
 #endif
+    case QueueType::GpuZoneBeginAllocSrcLoc:
+        ptr = MemRead<uint64_t>( &item.gpuZoneBegin.srcloc );
+        tracy_free( (void*)ptr );
+        break;
     default:
         break;
     }
@@ -1960,6 +1964,17 @@ Profiler::DequeueStatus Profiler::Dequeue( moodycamel::ConsumerToken& token )
                         MemWrite( &item->gpuZoneBegin.cpuTime, dt );
                         break;
                     }
+					case QueueType::GpuZoneBeginAllocSrcLoc:
+					{
+						int64_t t = MemRead<int64_t>(&item->gpuZoneBegin.cpuTime);
+						int64_t dt = t - refThread;
+                        refThread = t;
+						MemWrite(&item->gpuZoneBegin.cpuTime, dt);
+						ptr = MemRead<uint64_t>(&item->gpuZoneBegin.srcloc);
+						SendSourceLocationPayload(ptr);
+						tracy_free((void*)ptr);
+						break;
+					}
                     case QueueType::GpuZoneEnd:
                     {
                         int64_t t = MemRead<int64_t>( &item->gpuZoneEnd.cpuTime );

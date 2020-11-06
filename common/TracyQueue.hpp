@@ -42,6 +42,7 @@ enum class QueueType : uint8_t
     MemFreeCallstackNamed,
     GpuZoneBegin,
     GpuZoneBeginCallstack,
+    GpuZoneBeginAllocSrcLoc,
     GpuZoneEnd,
     GpuZoneBeginSerial,
     GpuZoneBeginCallstackSerial,
@@ -577,6 +578,7 @@ static constexpr size_t QueueDataSize[] = {
     sizeof( QueueHeader ) + sizeof( QueueMemFree ),         // callstack, named
     sizeof( QueueHeader ) + sizeof( QueueGpuZoneBegin ),
     sizeof( QueueHeader ) + sizeof( QueueGpuZoneBegin ),    // callstack
+    sizeof( QueueHeader ) + sizeof( QueueGpuZoneBegin ),      // allocated source location
     sizeof( QueueHeader ) + sizeof( QueueGpuZoneEnd ),
     sizeof( QueueHeader ) + sizeof( QueueGpuZoneBegin ),    // serial
     sizeof( QueueHeader ) + sizeof( QueueGpuZoneBegin ),    // serial, callstack
