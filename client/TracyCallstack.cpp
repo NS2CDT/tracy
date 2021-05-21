@@ -115,7 +115,7 @@ void InitCallstack()
 #endif
 
     SymInitialize( GetCurrentProcess(), nullptr, true );
-    SymSetOptions( SYMOPT_LOAD_LINES );
+    SymSetOptions( SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS);
 
 #ifndef __CYGWIN__
     HMODULE mod[1024];
